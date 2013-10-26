@@ -1,12 +1,12 @@
-function dwellTime = dwell(projWidths, timeSeqs, subScaleDivs, vLeaf)
+function dwellTime = dwell(rotAngles, timeSeqs, subScaleDivs, vLeaf, leafWidth)
 %DWELL dwell time algorithm for the ion beam collimator using stepper
 %motors.
 %
 % varargin:
-%   projWidths    --  (a set of) projected width
+%   rotAngles     --  rotation angles
 %   timeSeqs      --  time sequences
 %   subScaleDivs  --  scale divisions on the grating substrate
-%   vSub          --  translational velocity of scanning leaf
+%   vLeaf         --  translational velocity of scanning leaf
 %
 % varargout:
 %   dwellTime  --  dwell time
@@ -14,9 +14,8 @@ function dwellTime = dwell(projWidths, timeSeqs, subScaleDivs, vLeaf)
 % copyright (c) wulx, gurdy.woo@gmail.com
 % last modified by wulx, 2013/10/24
 
-
-if any(~isfinite(projWidths) | projWidths<0) 
-    error('all projected widths should be finite non-negtive.')
+if any(~isfinite(rotAngles)) 
+    error('rotation angles should be finite.')
 end
 
 if any(~isfinite(timeSeqs) | timeSeqs<0) 
@@ -33,19 +32,37 @@ if ~isfinite(vLeaf) || vLeaf<0 % vLeaf is scalar
     error('translation velocity of substrate should be finite non-negtive.')
 end
 
-
-end % funciton DWELL end -------------------------------------------------%
-
-function projWidths = proj(rotAngles, leafWidth)
-
-if any(~isfinite(rotAngles))
-    error('rotation angle should be finite.')
-end
-
 if ~isfinite(leafWidth) || leafWidth<0
     error('rotation angle should be finite non-negtive.')
 end
 
-projWidths = sin(rotAngles) * leafWidth;
+% the scanning leaf parallels to ion beam when rotation angle is 0,
+% and perpendicular when the angle is  pi/2.
+projWidths = cos(rotAngles) * leafWidth;
 
-end % funciton PROJ end --------------------------------------------------%
+nProjWidths = numel(projWidths);
+
+margins = 0.5 * projWidths([1 end]);
+%distance = subScaleDivs(end) - subScaleDivs(1) + sum(margins);
+
+%totalTime = distance / vLeaf;
+%timeline = linspace(0, totalTime, nProjWidths);
+
+firstPos = subScaleDivs(1) - margins(1);
+%lastPos = subScaleDivs(end) + margins(2);
+%leafCenterPos = linspace(firstPos, lastPos, nProjWidths);
+
+distSeqs = vLeaf * timeSeqs;
+distances = arrayfun(@(n) sum( distSeqs(1:n) ), 0:nProjWidths);
+leafCenterPos = firstPos + distances;
+
+dwellTime = zeros(size(subScaleDivs));
+for i = 1:nProjWidths
+    pos = leafCenterPos(i);
+    halfWidth = 0.5*projWidths(i);
+    proj = [pos-halfWidth, pos+halfWidth];
+    hits = subScaleDivs>proj(1) & subScaleDivs<=proj(2);
+    dwellTime = dwellTime + timeSeqs(i)*hits;
+end
+
+end % funciton DWELL end -------------------------------------------------%

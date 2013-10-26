@@ -1,5 +1,23 @@
-%% check args
+%% dwell test
+
+sn_a = 30;
+sn_c = 10;
+sn_d = 18;
+pf_i = 100;
+pf_m = 1000;
+s_u = 10;
+method = 'round';
+[f_list, dt_list] = time_per_step(sn_a, sn_c, sn_d, pf_i, pf_m, s_u, method);
+
+[nSteps, timeSeqs] = stepcount(f_list, dt_list);
+
+stepAngleDeg = 1.8;
+radians = step2rad(nSteps, stepAngleDeg);
 
 
-% check arguments: projWidths, timeSeqs, subScaleDivs, transVelocity
-dwell(1:3, 0:2, 1:0.1:5, 1)
+subScaleDivs = 0:0.1:100;
+vLeaf = 200;
+leafWidth = 60;
+dwellTime = dwell(radians, timeSeqs, subScaleDivs, vLeaf, leafWidth);
+
+plot(subScaleDivs, dwellTime);
