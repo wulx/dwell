@@ -1,4 +1,4 @@
-function dwellTime = dwell(rotAngles, timeSeqs, subScaleDivs, vLeaf, leafWidth)
+function dwellTime = dwell(rotAngles, timeSeqs, subScaleDivs, timeStep, vLeaf, leafWidth)
 %DWELL dwell time algorithm for the ion beam collimator using stepper
 %motors.
 %
@@ -40,29 +40,29 @@ end
 % and perpendicular when the angle is  pi/2.
 projWidths = cos(rotAngles) * leafWidth;
 
-nProjWidths = numel(projWidths);
+% nProjWidths = numel(projWidths);
 
 margins = 0.5 * projWidths([1 end]);
-%distance = subScaleDivs(end) - subScaleDivs(1) + sum(margins);
-
-%totalTime = distance / vLeaf;
-%timeline = linspace(0, totalTime, nProjWidths);
 
 firstPos = subScaleDivs(1) - margins(1);
-%lastPos = subScaleDivs(end) + margins(2);
-%leafCenterPos = linspace(firstPos, lastPos, nProjWidths);
+lastPos = subScaleDivs(end) + margins(2);
 
-distSeqs = vLeaf * timeSeqs;
-distances = arrayfun(@(n) sum( distSeqs(1:n) ), 0:nProjWidths);
-leafCenterPos = firstPos + distances;
+totalDist = subScaleDivs(end) - subScaleDivs(1) + sum(margins);
+totalTime = totalDist / vLeaf;
 
-dwellTime = zeros(size(subScaleDivs));
-for i = 1:nProjWidths
+% make sure take the start and end position or time point
+nScan = ceil(totalTime / timeStep);
+leafCenterPos = linspace(firstPos, lastPos, nScan);
+timeline = linspace(0, totalTime, nScan);
+
+counts = zeros(size(subScaleDivs));
+for i = 1:nScan
     pos = leafCenterPos(i);
     halfWidth = 0.5*projWidths(i);
-    proj = [pos-halfWidth, pos+halfWidth];
-    hits = subScaleDivs>proj(1) & subScaleDivs<=proj(2);
-    dwellTime = dwellTime + timeSeqs(i)*hits;
+    hits = subScaleDivs>(pos-halfWidth) & subScaleDivs<=(pos+halfWidth);
+    counts = counts + hits;
 end
+
+dwellTime = (totalTime / nScan) * counts;
 
 end % funciton DWELL end -------------------------------------------------%
