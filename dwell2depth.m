@@ -1,4 +1,4 @@
-function etchDepth = depth(dwellTime, etchTime, f)
+function etchDepth = dwell2depth(dwellTime, etchTime, f)
 %DEPTH distribution of etched depth
 
 % copyright (c) wulx, gurdy.woo@gmail.com
