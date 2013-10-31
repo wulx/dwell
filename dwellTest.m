@@ -41,7 +41,7 @@ for f = [0 100 200]
     
     f = 1;
     etchTime = timeline(end) - timeline(1);
-    etchDepth = depth(dwellTime, etchTime, f);
+    etchDepth = dwell2depth(dwellTime, etchTime, f);
     
     figure, plot(scaleDivs, etchDepth);
 end
