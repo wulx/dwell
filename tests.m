@@ -47,7 +47,7 @@ meanEtchTime = mean(etchTime);
 
 plot(stroke, meanEtchTime*ones(size(stroke)), 'k-.')
 
-% opt a feasible totalTime -----------------------------------------------%
+% elapsed time -----------------------------------------------------------%
 leafWidth = 6*10^7; % in nm
 totalStroke = stroke(end) - stroke(1); % in nm
 

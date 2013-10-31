@@ -1,4 +1,4 @@
-function [steps, timeline] = timesamp(timeSeqs, timeStep)
+function varargout = timesamp(timeSeqs, timeStep)
 %TIMESAMP time sampling
 
 totalTime = sum( timeSeqs(:) );
@@ -11,4 +11,14 @@ nStep = numel(timeSeqs);
 for i = 1:nStep
     steps = steps + (timeline >= sum(timeSeqs(1:i-1)));
 end
-    
+
+switch nargout
+    case 0
+        figure, plot(timeline, steps, 'k-');
+    case 1
+        varargout = {steps};
+    case 2
+        varargout = {steps, timeline};
+    otherwise
+        error('too many output arguments')
+end
