@@ -1,6 +1,9 @@
 function varargout = timesamp(timeSeqs, timeStep)
 %TIMESAMP time sampling
 
+% copyright (c) wulx, gurdy.woo@gmail.com
+% last modified by wulx, 2013/10/31
+
 totalTime = sum( timeSeqs(:) );
 nScan = ceil(totalTime / timeStep);
 

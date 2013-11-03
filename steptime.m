@@ -1,6 +1,9 @@
 function timeSeqs = steptime(freqStages, timeStages)
 %STEPTIME step time
 
+% copyright (c) wulx, gurdy.woo@gmail.com
+% last modified by wulx, 2013/10/31
+
 nStage = numel(freqStages); % stages of pulse frequencies
 % number of steps for every stage of pulse frequencies
 stepNos = round( freqStages .* timeStages );

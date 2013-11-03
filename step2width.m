@@ -1,9 +1,12 @@
 function projWidths = step2width(steps, stepAngleDeg, leafWidth, initAngleDeg)
-%STEPWIDTH convert number of steps of the specified stepper motor to
+%STEP2WIDTH convert number of steps of the specified stepper motor to
 %projected widths
 
-if any(~isfinite(steps) | steps<0)
-    error('number of steps should be finite non-negative')
+% copyright (c) wulx, gurdy.woo@gmail.com
+% last modified by wulx, 2013/10/31
+
+if any(~isfinite(steps))
+    error('number of steps should be finite.')
 end
 
 if ~isfinite(stepAngleDeg) || stepAngleDeg<0

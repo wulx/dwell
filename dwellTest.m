@@ -28,6 +28,7 @@ timeSeqs = steptime(f_list, dt_list);
 timeStep = 0.00001;
 [steps, timeline] = timesamp(timeSeqs, timeStep);
 
+steps = - steps;
 figure, plot(timeline, steps);
 
 % #4 step2width ----------------------------------------------------------%
@@ -37,10 +38,10 @@ initAngleDeg = 90;
 projWidths = step2width(steps, stepAngleDeg, leafWidth, initAngleDeg);
 
 % #4 dwell time ----------------------------------------------------------%
-scaleDivs = 60:300;
+scaleDivs = 0:200;
 elapsedTime = timeline(end);
-dwellTime = dwell(projWidths, scaleDivs, elapsedTime);
+margins(1:2) = 0.5*leafWidth;
+dwellTime = dwell(projWidths, elapsedTime, scaleDivs, margins);
 
 figure, plot(scaleDivs, dwellTime);
-title(['translational velocity: ', num2str(vLeaf), ' ; number of steps: ', num2str(numel(timeSeqs))]);
 
