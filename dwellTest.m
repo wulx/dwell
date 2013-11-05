@@ -38,7 +38,7 @@ initAngleDeg = 90;
 projWidths = step2width(steps, stepAngleDeg, leafWidth, initAngleDeg);
 
 % #4 dwell time ----------------------------------------------------------%
-scaleDivs = 0:200;
+scaleDivs = [0, (1:100)-0.5, 200];
 elapsedTime = timeline(end);
 margins(1:2) = 0.5*leafWidth;
 dwellTime = dwell(projWidths, elapsedTime, scaleDivs, margins);

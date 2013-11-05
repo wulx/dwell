@@ -6,7 +6,7 @@ load etch_depth2.mat
 z = depth; % in nm
 x = 0.5:399.5; % mm, 400 points in total
 y = 0.5:399.5; % mm
-figure, mesh(x, y, z);
+figure, meshc(x, y, z);
 axis equal;
 
 % shear and divide projected area
@@ -46,7 +46,7 @@ xform = [ 1    0   0
          -shx  1   0
           0    0   1 ];
 tform = maketform('affine', xform);
-zr = imtransform(zUp, tform, 'FillValues', nan);  % rising strokes
+zr = imtransform(zUp, tform, 'nearest', 'FillValues', nan);  % rising strokes
 % figure, mesh(zr);
 % axis equal;
 
@@ -54,45 +54,73 @@ xform2 = [ 1   0   0
           shx  1   0
            0   0   1 ];
 tform2 = maketform('affine',xform2);
-zf = imtransform(zDown, tform2, 'FillValues', nan);  % falling strokes
+zf = imtransform(zDown, tform2, 'nearest', 'FillValues', nan);  % falling strokes
 % figure, mesh(zf);
 % axis equal;
 
 % divide rising strokes
-startIx = 1:ionBeamWidth:upRange-ionBeamWidth+1;
-endIx = [startIx(2:end)-1, upRange];
+rStartIx = 1:ionBeamWidth:upRange-ionBeamWidth+1;
+rEndIx = [rStartIx(2:end)-1, upRange];
 
 upRibbons = nan(size(zr,1), nUpStroke);
 
 for i = 1:nUpStroke
-    upRibbons(:, i) = mean(zr(:, startIx(i):endIx(i)), 2);
+    zri = zr(:, rStartIx(i):rEndIx(i));
+    for ii = 1:size(zri,1)
+        zrii = zri(ii, :);
+        idx = ~isnan(zrii);
+        c = sum(idx);
+        if c > 0
+            upRibbons(ii, i) = sum(zrii(idx)) / c;
+        end
+    end
 end
 
-figure;
-hUp = ribbon(upRibbons);
-xlabel('X')
-ylabel('Y')
-zlabel('Z')
+% figure;
+% hUp = ribbon(upRibbons);
+% xlabel('X')
+% ylabel('Y')
+% zlabel('Z')
 
-% figure, waterfall(upRibbons');
+zr2 = zr;
+zr2(:, rStartIx) = nan;
+zr2 = imtransform(zr2, tform2, 'FillValues', nan);
+figure, mesh(zr2);
+axis equal
+
+figure, waterfall(upRibbons');
 
 % divide falling strokes
-startIx = 1:ionBeamWidth:downRange-ionBeamWidth+1;
-endIx = [startIx(2:end)-1, downRange];
+fStartIx = 1:ionBeamWidth:downRange-ionBeamWidth+1;
+fEndIx = [fStartIx(2:end)-1, downRange];
 
 downRibbons = nan(size(zf,1), nDownStroke);
 
 for i = 1:nDownStroke
-    downRibbons(:, i) = mean(zf(:, startIx(i):endIx(i)), 2);
+    zfi = zf(:, fStartIx(i):fEndIx(i));
+    for ii = 1:size(zri,1)
+        zfii = zfi(ii, :);
+        idx = ~isnan(zfii);
+        c = sum(idx);
+        if c > 0
+            downRibbons(ii, i) = sum(zfii(idx)) / c;
+        end
+    end
 end
 
-figure;
-hDown = ribbon(downRibbons);
-xlabel('X')
-ylabel('Y')
-zlabel('Z')
+% figure;
+% hDown = ribbon(downRibbons);
+% xlabel('X')
+% ylabel('Y')
+% zlabel('Z')
 
-% figure, waterfall(downRibbons');
+zf2 = zf;
+zf2(:, fStartIx) = nan;
+zf2 = imtransform(zf2, tform, 'FillValues', nan);
+figure, mesh(zf2);
+axis equal
+
+figure, waterfall(downRibbons');
 
 ribbons = [upRibbons downRibbons];
 figure, hold on;
@@ -142,7 +170,10 @@ elapsedTime = ms*strokeTime;
 
 %
 upDwells = strokeTime - upRibbons;
+upDwells = upDwells(leafWidth/2+1:end-leafWidth/2, :);
 downDwells = strokeTime - downRibbons;
+downDwells = downDwells(leafWidth/2+1:end-leafWidth/2, :);
 
-figure;
-plot(upDwells)
+figure, plot(upDwells);
+figure, plot(downDwells);
+
