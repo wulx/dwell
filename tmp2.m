@@ -174,6 +174,19 @@ upDwells = upDwells(leafWidth/2+1:end-leafWidth/2, :);
 downDwells = strokeTime - downRibbons;
 downDwells = downDwells(leafWidth/2+1:end-leafWidth/2, :);
 
-figure, plot(upDwells);
-figure, plot(downDwells);
+figure, hold on;
+plot(upDwells)
+title('dwell time of up strokes')
+
+maxDwellTime = maxTunableRatio * strokeTime;
+
+plot(maxDwellTime*ones(size(upDwells, 1), 1), 'r:')
+
+figure, hold on;
+plot(downDwells)
+title('dwell time of down strokes')
+
+plot(maxDwellTime*ones(size(downDwells, 1), 1), 'r:')
+
+%save('dwells.mat', 'upDwells', 'downDwells')
 
