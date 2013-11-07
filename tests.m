@@ -135,9 +135,9 @@ plot([stroke(end) stroke(end)], [0 bps(end)], 'k:')
 leafWidth = 60;
 margins(1:2) = 0.5 * leafWidth;
 
-xhead = stroke(find(stroke<margins(1))) - margins(1);
-xtail = stroke(find(stroke>stroke(end)-margins(2))) + margins(2);
-x = [xhead, stroke, xtail];
+xhead = stroke(find(stroke<margins(1))) - margins(1); % left shift
+xtail = stroke(find(stroke>stroke(end)-margins(2))) + margins(2); % right shift
+x = [xhead, stroke, xtail]; % concatenant
 y = spline(stroke, dwellTime, x);
 
 plot(x, y, 'b:')
