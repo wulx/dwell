@@ -1,4 +1,4 @@
-function r = profopt(dwellTime)
+%function r = profopt(dwellTime)
 %PROFOPT motion profile optimization to obtain the minimum RMSE of dwell time 
 
 %% operation protocols of  dwell time algorithm
@@ -20,7 +20,11 @@ timeSeqs = steptime(f_list, dt_list);
 timeStep = 0.00001;
 [steps, timeline] = timesamp(timeSeqs, timeStep);
 
-steps = - steps;
+direction = 'down';
+if strcmp(direction, 'down')
+    steps = - steps;
+end
+
 figure, plot(timeline, steps);
 
 % #4 step2width ----------------------------------------------------------%
@@ -29,7 +33,7 @@ leafWidth = 60; % in mm
 initAngleDeg = 90;
 projWidths = step2width(steps, stepAngleDeg, leafWidth, initAngleDeg);
 
-% #4 dwell time ----------------------------------------------------------%
+% #5 dwell time ----------------------------------------------------------%
 scaleDivs = [0, (1:200)-0.5, 200];
 strokeTime = timeline(end);
 margins(1:2) = 0.5*leafWidth;
@@ -38,3 +42,4 @@ dwellTime = dwell(projWidths, strokeTime, scaleDivs, margins);
 %% outputs
 % root-mean-square deviation of dwell time
 r = rmse(dwellTime, dwellTimeEstimate);
+
