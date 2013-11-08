@@ -1,4 +1,4 @@
-function [xc, yc] = findpts(x, y, varargin)
+function [lc, cnum] = findpts(y, varargin)
 %FINDPTS find maxima, minima and special inflection points of a curve
 % p.s. to divide the spline into S shaped curves, we should find all local 
 % maxima, local minima and special inflection points. The inflection points
@@ -12,18 +12,15 @@ function [xc, yc] = findpts(x, y, varargin)
 % copyright (c) wulx, gurdy.woo@gmail.com
 % last modified by wulx, 2013/11/7
 
-% 14 in total, 4 params for spaps and the others are extra params for
+% 13 in total, 3 params for spaps and the others are extra params for
 % findpeaks.
-narginchk(2, 14);
+narginchk(1, 13);
 
 % parse inputs -----------------------------------------------------------%
 p = inputParser;
 
-nx = numel(x);
 ny = numel(y);
-checkX = @(x) isvector(x)&(nx>=3);
-checkY = @(y) isvector(y)&(ny==nx);
-addRequired(p, 'x', checkX);
+checkY = @(y) isvector(y)&(ny>=3);
 addRequired(p, 'y', checkY);
 
 defaultTol = 5.e-3;
@@ -36,24 +33,50 @@ addOptional(p, 'm', defaultM, checkM);
 % accept additional parameter value inputs
 p.KeepUnmatched = true;
 
-parse(p, x, y, varargin{:});
+parse(p, y, varargin{:});
 
 % smoothing spline -------------------------------------------------------%
 tol = p.Results.tol;
 m = p.Results.m;
 
-y_smooth = spaps(x, y, tol, m);
+x = 1:numel(y);
+[sp, y_smooth] = spaps(x, y, tol, m);
 
-y1 = fnval(x, fnder(y_smooth, 1));
+sp1 = fnder(sp, 1);
 
 % find critical points ---------------------------------------------------%
-if nargin > 4
-    [~, locs] = findpeaks(-abs(y1), varargin{3:end});
+y1 = -abs( fnval(x, sp1) );
+nargin
+
+if nargin > 3
+    varargin{3:end}
+    [~, locs] = findpeaks(y1, varargin{3:end});
+    % find peak locations
+    [~, peakLocs] = findpeaks(y_smooth, varargin{3:end});
 else
-    [~, locs] = findpeaks(-abs(y1));
+    [~, locs] = findpeaks(y1);
+    [~, peakLocs] = findpeaks(y_smooth);
 end
 
+% identify the inflection points at ogee
+sp2 = fnder(sp1, 1);
+z = fnzeros(sp2);
 
-xc = x(locs);
-yc = y(locs);
+inflLocs = round(z(1, :));
+inflLocs = inflLocs(ismember(inflLocs, locs));
+
+% valley locations
+valleyLocs = setxor([inflLocs peakLocs], locs);
+
+% outputs ----------------------------------------------------------------%
+% cumulative location numbers of all three kinds of critical points
+np = numel(peakLocs);
+nv = numel(valleyLocs);
+ni = numel(inflLocs);
+cnum = [np, np+nv, np+nv+ni];
+
+lc = [peakLocs, valleyLocs, inflLocs];
+
+% xc = x(lc);
+% yc = y(lc);
 

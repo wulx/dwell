@@ -1,6 +1,5 @@
 function [dwellTime, vLeaf] = timecount(projWidths, strokeTime, scaleDivs, margins)
-%DWELL dwell time algorithm for the ion beam collimator using stepper
-%motors.
+%TIMECOUNT dwell time counts
 %
 % varargin:
 %   projWidths   --  projected widths
@@ -36,7 +35,7 @@ firstPos = scaleDivs(1) - margins(1);
 lastPos = scaleDivs(end) + margins(2);
 
 stroke = lastPos - firstPos;
-vLeaf = stroke / strokeTime;
+vLeaf = stroke / strokeTime; % constant speed
 
 leafCenterPos = linspace(firstPos, lastPos, nScan);
 counts = zeros(size(scaleDivs));
@@ -50,4 +49,3 @@ end
 timePerScan = strokeTime / nScan;
 dwellTime = timePerScan * counts;
 
-end % funciton DWELL end -------------------------------------------------%

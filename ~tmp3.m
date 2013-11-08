@@ -76,3 +76,9 @@ box on
 %     end
 % end
 
+
+z = fnzeros(fnder(ogee_smooth,2));
+z3 = round(z(1, :));
+
+lia = ismember(z3, x(locs));
+

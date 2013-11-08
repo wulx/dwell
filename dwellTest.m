@@ -10,38 +10,40 @@ if isempty(strfind(path, 'lsramp'))
     end
 end
 
-% #1 time per step or steps per time -------------------------------------%
-sn_a = 80;
-sn_c = 40;
-sn_d = 60;
-pf_i = 100;
-pf_m = 1000;
-s_u = 2;
-method = 'round';
-[f_list, dt_list] = time_per_step(sn_a, sn_c, sn_d, pf_i, pf_m, s_u, method);
-%[f_list, dt_list] = steps_per_time(sn_a, sn_c, sn_d, pf_i, pf_m, s_u, method);
+% 10 deg. ==> 75 deg
+% 5 s
+% 
+t_tot = 2;
 
-% #2 step time -----------------------------------------------------------%
-timeSeqs = steptime(f_list, dt_list);
+angs = [10 75];
+ang2step = @(a, stepAngleDeg) round(a/stepAngleDeg);
+sn_tot = ang2step(angs(2)-angs(1), 1.8/8);
 
-% #3 uniform sampling of elapsed time ------------------------------------%
-timeStep = 0.00001;
-[steps, timeline] = timesamp(timeSeqs, timeStep);
+sn_a = round(sn_tot/4); %
+% sn_d = sn_a;
+% sn_c = sn_tot - sn_a - sn_d;
 
-steps = - steps;
-figure, plot(timeline, steps);
+f_mean = sn_tot / t_tot;
 
-% #4 step2width ----------------------------------------------------------%
-stepAngleDeg = 1.8 / 8; % 8 microsteps
-leafWidth = 60; % in mm
-initAngleDeg = 90;
-projWidths = step2width(steps, stepAngleDeg, leafWidth, initAngleDeg);
+f_i = round(f_mean / 2); %
 
-% #4 dwell time ----------------------------------------------------------%
-scaleDivs = [0, (1:200)-0.5, 200];
-strokeTime = timeline(end);
-margins(1:2) = 0.5*leafWidth;
-dwellTime = dwell(projWidths, strokeTime, scaleDivs, margins);
+f_m = round(2*f_mean - f_i);
 
-figure, plot(scaleDivs, dwellTime);
+[f_list, dt_list] = time_per_step(sn, pf, s_u, method);
 
+% sn = [80 40 60];
+% pf = [100 1000];
+% s_u = 2;
+% 
+% timeStep = 0.00001;
+% 
+% strokeDir = 'down';
+% 
+% stepAngleDeg = 1.8 / 8; % 8 microsteps
+% leafWidth = 60; % in mm
+% initAngleDeg = 90; % in degree
+% 
+% scaleDivs = [0, (1:200)-0.5, 200];
+% 
+% dwell(sn, pf, initAngleDeg, scaleDivs, strokeDir, s_u, leafWidth, stepAngleDeg, timeStep)
+% 

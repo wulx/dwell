@@ -170,9 +170,9 @@ elapsedTime = ms*strokeTime;
 
 %
 upDwells = strokeTime - upRibbons;
-upDwells = upDwells(leafWidth/2+1:end-leafWidth/2, :);
+%upDwells = upDwells(leafWidth/2+1:end-leafWidth/2, :);
 downDwells = strokeTime - downRibbons;
-downDwells = downDwells(leafWidth/2+1:end-leafWidth/2, :);
+%downDwells = downDwells(leafWidth/2+1:end-leafWidth/2, :);
 
 figure, hold on;
 plot(upDwells)
