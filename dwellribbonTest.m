@@ -169,24 +169,24 @@ plot((2*meanEtchTimeG-strokeTime)*ones(vStroke, 1), 'b:')
 elapsedTime = ms*strokeTime;
 
 %
-upDwells = strokeTime - upRibbons;
+upDwellTime = strokeTime - upRibbons;
 %upDwells = upDwells(leafWidth/2+1:end-leafWidth/2, :);
-downDwells = strokeTime - downRibbons;
+downDwellTime = strokeTime - downRibbons;
 %downDwells = downDwells(leafWidth/2+1:end-leafWidth/2, :);
 
 figure, hold on;
-plot(upDwells)
+plot(upDwellTime)
 title('dwell time of up strokes')
 
 maxDwellTime = maxTunableRatio * strokeTime;
 
-plot(maxDwellTime*ones(size(upDwells, 1), 1), 'r:')
+plot(maxDwellTime*ones(size(upDwellTime, 1), 1), 'r:')
 
 figure, hold on;
-plot(downDwells)
+plot(downDwellTime)
 title('dwell time of down strokes')
 
-plot(maxDwellTime*ones(size(downDwells, 1), 1), 'r:')
+plot(maxDwellTime*ones(size(downDwellTime, 1), 1), 'r:')
 
-%save('dwells.mat', 'upDwells', 'downDwells')
+%save('dwell_time.mat', 'upDwellTime', 'downDwellTime', 'maxDwellTime')
 
