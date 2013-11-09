@@ -1,6 +1,12 @@
 function [locs, ptype] = findpoints(ys, opts, popts, vopts)
-%FINDPOINTS find target points, including peaks and valleys, and also the
-%inflection points at ogee curves.
+%FINDPOINTS find target points, including peaks and valleys, and special
+%inflection points
+%
+% p.s. to divide the spline into S shaped curves, we should find all local 
+% maxima(peaks), local minima(valleys) and special inflection points. The 
+% inflection points refer specifically to those inflection points at ogee 
+% curves.
+%
 
 
 if nargin < 2
