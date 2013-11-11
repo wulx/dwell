@@ -188,5 +188,5 @@ title('dwell time of down strokes')
 
 plot(maxDwellTime*ones(size(downDwellTime, 1), 1), 'r:')
 
-%save('dwell_time.mat', 'upDwellTime', 'downDwellTime', 'maxDwellTime')
+% save('dwell_time.mat', 'upDwellTime', 'downDwellTime', 'maxDwellTime', 'strokeTime')
 

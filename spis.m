@@ -2,18 +2,22 @@ function [xx, ys] = spis(ogee, tol, m)
 %SPIS SPline Interpolation (or extrapolation) and Smoothing
 %
 
+narginchk(1, 3);
+
 if nargin < 3, m = 3; end
 if nargin < 2, tol = 1.e-2; end
 
-x = (1:numel(ogee))-0.5;
-xx = [0 x numel(ogee)];
+n = numel(ogee);
 
-% filter margins
+x = (1:n)-0.5; % center points
+xx = [0 x n]; % add boundaries
+
+% exclude NANs
 notNan = ~isnan(ogee);
-ogee = ogee(notNan);
 x = x(notNan);
+ogee = ogee(notNan);
 
-% interpolation to envelop the boundaries
+% extrapolation to envelop NAN points and two boundaries
 yy = spline(x, ogee, xx);
 
 % spline smoothing

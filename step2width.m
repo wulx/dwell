@@ -15,8 +15,8 @@ end
 
 rotAngles = deg2rad(initAngleDeg + stepAngleDeg*steps);
 
-% the scanning leaf parallels to ion beam when rotation angle is pi/2,
-% and perpendicular when the angle is  0.
+% the scanning leaf parallels to ion beam when rotation angle is 0,
+% and perpendiculars to when the angle is  pi/2.
 % projWidths will increase as rotAngles increases between 0 and pi/2.
 projWidths = abs(sin(rotAngles) * leafWidth);
 
