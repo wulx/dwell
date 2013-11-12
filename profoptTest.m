@@ -1,13 +1,11 @@
-%PROFOPT motion profile optimization to obtain the minimum RMSE of dwell time 
+%PROFOPT motion profile optimization to obtain the minimum RMSE of dwell time
 clear all; close all; clc
 
 %% load objective data
 load dwell_time.mat
 
-for n = 2:8
-    ogee = downDwellTime(:, n);
-%     figure, hold on;
-%     plot(ogee, 'k-')
+for n = 1:8
+    ogee = upDwellTime(:, n);
     
     [xx, ys] = spis(ogee);
     
@@ -20,7 +18,8 @@ for n = 2:8
     figure, hold on;
     plot(xx, ys, 'k-')
     
-    [locs, ptype] = findpoints(ys);
+    opts = {'MINPEAKHEIGHT', -1, 'MINPEAKDISTANCE', 15, 'NPEAKS', 5};
+    [locs, ptype] = findpoints(ys, opts);
     
     % critical points
     for i = 1:numel(locs)
@@ -39,33 +38,39 @@ for n = 2:8
     plot(xx([1 end]), ys([1 end]), 'go')
     
     % set params
-    dwells = ys([1 locs end]);
+    Locs = [1 locs numel(xx)];
+    dwells = ys(Locs);
     angles = asin(dwells/maxDwellTime);
     degs = rad2deg(angles);
-
-
+    
+    
     %ionWidth = 60; % ion beam width in mm
     %vTrans = ionWidth / elapsedTime;
     
-    s_u = 2;
-    
-    crtLocs = [1 locs numel(xx)];
-    
-
     stroke = 460;
     
     stepAngleDeg = 1.8 / 8;
     
-    stps = round(degs / stepAngleDeg);
 
+    stps = round(degs / stepAngleDeg);
     
-    S = cell(1, numel(crtLocs)-1);
+    dstps = abs(stps(2:end) - stps(1:end-1));
+    
+    lowStp = dstps<4;
+    lowStp2 = [lowStp(1) lowStp(1:end)] | [lowStp(1:end) lowStp(end)];
+    
+    amp = 3*lowStp2;
+    errbar = [0 ptype 0];
+
+    stps = stps + amp.*errbar + 3*errbar;
+    
+    
+    S = cell(1, numel(Locs)-1);
     T = cell(size(S));
     for j = 2:numel(degs)
         
-        sn_tot = stps(j) - stps(j-1);
+        sn_tot = (stps(j) - stps(j-1));
         
-        t_tot = strokeTime * (xx(crtLocs(j)) - xx(crtLocs(j-1))) / stroke;
         
         strokeDown = 0;
         if sn_tot < 0
@@ -74,6 +79,17 @@ for n = 2:8
             disp('falling down')
         end
         
+        if sn_tot > 60
+            s_u = 2;
+        else
+            s_u = 1;
+        end
+        
+        
+        sn_tot = sn_tot/s_u;
+        t_tot = strokeTime * (xx(Locs(j)) - xx(Locs(j-1))) / stroke;
+        
+
         w_a = 1/3; %<--------------------------------------------------%
         sn_a = round(w_a * sn_tot);
         w_d = 1/3;  %<-----------------------------------------------------------%
@@ -82,13 +98,13 @@ for n = 2:8
         sn_d = round(w_d * sn_tot);
         sn_c = sn_tot - sn_a - sn_d;
         
-        a_max = 10000;
+        a_max = 60000; % benchtest result: 66333 pulse/s^2
         
         % 0 <= w_f <= 1
         w_f = rand * (sn_tot/t_tot - 2)/(0.25*a_max*t_tot);  %<-------------------%
         
         % (0, (sn_tot/t_tot - 2)/(0.25*a_max*t_tot)]
-        f_i = max(round( sn_tot/t_tot - 0.25*a_max*t_tot*w_f ), 2);
+        f_i = max(floor(sn_tot/t_tot - 0.25*a_max*t_tot*w_f), 2);
         
         f_m = sym('f_m', 'positive');
         
@@ -99,16 +115,17 @@ for n = 2:8
         
         f_m = round( double(sols) );
         
-        if ~isempty(f_m)
-            2*(sn_a+sn_d)/(f_i+f_m) + sn_c/f_m
-        end
+%         if ~isempty(f_m)
+%             2*(sn_a+sn_d)/(f_i+f_m) + sn_c/f_m
+%         end
         
         % range of initial frequency
+        
+        
         
         sn = [sn_a, sn_c, sn_d];
         pf = round([f_i, f_m]);
         method = 'round';
-        s_u = 1;
         [f_list, dt_list] = time_per_step(sn, pf, s_u, method);
         
         %sn_plot(f_list, dt_list)
@@ -126,7 +143,7 @@ for n = 2:8
         else
             steps = stps(j-1) + steps;
         end
-        figure, stairs(timeline, steps);
+%         figure, stairs(timeline, steps);
         
         T{j-1} = timeSeqs;
         if j < numel(degs)
@@ -135,29 +152,14 @@ for n = 2:8
             S{j-1} = steps;
         end
         
-        
-%         % #3 uniform sampling of elapsed time ------------------------------------%
-%         timeStep = 0.001;
-%         [steps, timeline] = timesamp(timeSeqs, timeStep);
-%         
-%         if strokeDown
-%             steps = -steps;
-%         end
-%         
-%         figure, plot(timeline, steps);
-%         
-%         % #4 step2width ----------------------------------------------------------%
-%         leafWidth = 60;
-%         initAngleDeg = degs(j-1);
-%         projWidths{j-1} = step2width(steps, stepAngleDeg, leafWidth, initAngleDeg);
     end
     
     % cat
     T = cell2mat(T);
     timeline = [0 arrayfun(@(t) sum(T(1:t)), 1:numel(T))];
     S = cell2mat(S);
-    stairs(timeline, S);
-        
+%     stairs(timeline, S);
+    
     timeStep = 0.001;
     totalTime = sum( T(:) );
     nScan = ceil(totalTime / timeStep);
@@ -170,8 +172,8 @@ for n = 2:8
         steps(timeline>=sum(T(1:i-1)) & timeline<=sum(T(1:i))) = S(i);
     end
     
-    figure, plot(steps)
-    
+%     figure, plot(steps)
+%     
     
     leafWidth = 60;
     initAngleDeg = 0;
@@ -179,7 +181,7 @@ for n = 2:8
     
     scaleDivs = xx;
     dwellTime = timecount(projWidths, strokeTime, scaleDivs);
-    figure, plot(scaleDivs, dwellTime);
+%     figure, plot(scaleDivs, dwellTime);
     
     filt = ~[1 isnan(ogee)' 1];
     scaleDivs = scaleDivs(filt);
@@ -190,26 +192,9 @@ for n = 2:8
     isNum = ~isnan(ogee);
     plot(scaleDivs, ogee(isNum), 'k-')
     
-    % #5 dwell time ----------------------------------------------------------%
-    
-%     scaleDivs = xx;
-%     pp = [];
-%     nw = numel(projWidths);
-%     for k = 1:nw
-%         wi = projWidths{i};
-%         if k < nw
-%             pp = [pp wi(1:end-1)];
-%         else
-%             pp = [pp wi];
-%         end
-%     end
-%     dwellTime = timecount(pp, strokeTime, scaleDivs);
-%     
-%     figure, plot(scaleDivs, dwellTime);
-    
-    
-    
 end
+
+
 %% outputs
 % root-mean-square deviation of dwell time
 % r = rmse(dwellTime, dwellTimeEstimate);
