@@ -1,3 +1,5 @@
 [submodule "lsramp"]
 	path = lsramp
 	url = https://github.com/wulx/lsramp.git
+	ignore = dirty
+
