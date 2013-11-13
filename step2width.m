@@ -13,6 +13,8 @@ if ~isfinite(stepAngleDeg) || stepAngleDeg<0
     error('step angle should be finite non-negative')
 end
 
+if nargin<4, initAngleDeg = 0; end
+
 rotAngles = deg2rad(initAngleDeg + stepAngleDeg*steps);
 
 % the scanning leaf parallels to ion beam when rotation angle is 0,
