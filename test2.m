@@ -75,6 +75,7 @@ stroke = 460;
 S = cell(1, nCrts-1);
 T = cell(1, nCrts-1);
 
+t_diff = 0;
 for j = 2:numel(crtDegs)
     % total steps and total time
     sn_tot = (crtSteps(j) - crtSteps(j-1));
@@ -90,7 +91,7 @@ for j = 2:numel(crtDegs)
     sn_tot = sn_tot/s_u;
 
     s_tot = xx(crtLocs(j)) - xx(crtLocs(j-1));
-    t_tot = strokeTime * s_tot / stroke;
+    t_tot = t_diff + strokeTime * s_tot / stroke;
     
     % numbers of steps, [sn_a sn_c sn_d]
     w_a = rand; % @param -------------------------------------------------@
@@ -139,7 +140,8 @@ for j = 2:numel(crtDegs)
             f_m = f_m + 1;
             [f_list, dt_list] = time_per_step(sn, [f_i, f_m], s_u, method);
         end
-        
+        % time difference
+        t_diff = t_tot - sum(dt_list(:));
     end
 
     % time sequencies of every step
@@ -154,12 +156,13 @@ for j = 2:numel(crtDegs)
         steps = crtSteps(j-1) + steps;
     end
     
-    T{j-1} = timeSeqs;
     
     if j < nCrts
         S{j-1} = steps(1:end-1);
+        T{j-1} = timeSeqs;
     else
-        S{j-1} = steps;
+        S{j-1} = [steps, steps(end)];
+        T{j-1} = [timeSeqs, t_diff];
     end
 end
 
@@ -168,24 +171,23 @@ T = cell2mat(T);
 S = cell2mat(S);
 
 timeStep = 0.001; % 1 ms
-totalTime = sum( T(:) );
-nScan = ceil(totalTime / timeStep);
+%totalTime = sum( T(:) ); % totalTime is equals to strokeTime after time sync
+nScan = ceil(strokeTime / timeStep);
 
-steps = zeros(1, nScan);
-timeline = linspace(0, totalTime, nScan);
+stepsamp = zeros(1, nScan);
+timeline = linspace(0, strokeTime, nScan);
 
 nStep = numel(T);
 for i = 1:nStep
-    steps(timeline>=sum(T(1:i-1)) & timeline<=sum(T(1:i))) = S(i);
+    stepsamp(timeline>=sum(T(1:i-1)) & timeline<=sum(T(1:i))) = S(i);
 end
 
 leafWidth = 60;
 initAngleDeg = 0;
-projWidths = step2width(steps, stepAngleDeg, leafWidth, initAngleDeg);
+projWidths = step2width(stepsamp, stepAngleDeg, leafWidth, initAngleDeg);
 
 scaleDivs = xx;
 dwellTime = timecount(projWidths, strokeTime, scaleDivs);
-%     figure, plot(scaleDivs, dwellTime);
 
 filt = ~[1 isnan(ogee)' 1];
 scaleDivs = scaleDivs(filt);
