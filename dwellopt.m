@@ -1,4 +1,4 @@
-function [r, f_list, dt_list] = dwellopt(w_a, w_d, w_f, a1, a2, Crt, strokeTime, stepAngleDeg, leafWidth, a_max, timeStep)
+function [r, f_list, dt_list] = dwellopt(w_a, w_d, w_f, a1, a2, Crt, strokeTime, stepAngleDeg, leafWidth, timeStep)
 %DWELLOPT motion profile optimization to obtain the minimum RMSE of dwell time
 % varargin:
 %   @params to be optimized
@@ -44,7 +44,7 @@ broadenMask = [narrows(1) narrows(1:end)] | [narrows(1:end) narrows(end)];
 amp1 = a1 * crtTypes; % @param -------------------------------------------@
 amp2 = a2 * broadenMask .* crtTypes; % @param ----------------------------@
 
-crtSteps = crtSteps + amp1 + amp2;
+crtSteps = round(crtSteps + amp1 + amp2);
 
 % #2 protocol of dwell time algorithm ------------------------------------%
 
@@ -52,10 +52,14 @@ crtSteps = crtSteps + amp1 + amp2;
 S = cell(1, nCrts-1);
 T = cell(1, nCrts-1);
 
+% handles
+% tc = makeTimecalc;
+sf = makeSolvefm;
+
 t_diff = 0;
 for j = 2:nCrts
     % total steps and total time
-    sn_tot = (crtSteps(j) - crtSteps(j-1));
+    sn_tot = crtSteps(j) - crtSteps(j-1);
     
     % go backward or forward
     goBackward = false;
@@ -92,26 +96,22 @@ for j = 2:nCrts
     
     % initial frequency f_i and maximum frequency f_m
     % (0, (sn_tot/t_tot - 2)/(0.25*a_max*t_tot)]
-    f_i = max(floor(sn_tot/t_tot - 0.25*a_max*t_tot*w_f(j-1)), 2);
-    
+    % f_i = max(floor(sn_tot/t_tot - 0.25*a_max*t_tot*w_f(j-1)), 2)
+    f_i = round(w_f(j-1)*(sn_tot/t_tot - 2) + 2);
+
     %# TODO: maximum frequency may be no solutions.
-    f_m = solveFm();
+    f_m = sf(f_i, t_tot, sn_a, sn_c, sn_d);
+
     sn = [sn_a, sn_c, sn_d];
     pf = round([f_i, f_m]);
     method = 'round';
     [f_list, dt_list] = time_per_step(sn, pf, s_u, method);
     
-    % time sync
-    while sum(dt_list(:)) > t_tot
-        f_m = f_m + 1;
-        [f_list, dt_list] = time_per_step(sn, [f_i, f_m], s_u, method);
-    end
     % time difference
     t_diff = t_tot - sum(dt_list(:));
     
     % time sequencies of every step
-    %timeSeqs = steptime(f_list, dt_list);
-    timeSeqs = dt_list; % when s_u == 1
+    timeSeqs = steptime(f_list, dt_list);
     
     %# tricks: stepper from 0
     steps = 0:numel(timeSeqs);
@@ -130,6 +130,7 @@ for j = 2:nCrts
         S{j-1} = [steps, steps(end)];
         T{j-1} = [timeSeqs, t_diff]; % time compensation
     end
+    
 end
 
 % concatenant
@@ -168,19 +169,58 @@ if nargout > 1
     plot(scaleDivs, ogee, 'k-')
 end
 
+
+
+% time calculations ------------------------------------------------------%
+%     function tc = makeTimecalc
+%         
+%         a = sym('a', 'positive');
+%         n = sym('n', 'positive');
+%         t = sym('t', 'real');
+%         
+%         function t_sym = timecalc(f_i, f_m)
+%             
+%             % solve multiple equations of linear speed ramp
+%             Sols = solve((f_m + 0.5*a*s_u/f_m)^2 - (f_i - 0.5*a*s_u/f_i)^2 == 2*a*n*s_u, ...
+%                 ((f_m + 0.5*a*s_u/f_m) - (f_i - 0.5*a*s_u/f_i))/a == t, ...
+%                 t, a);
+%             
+%             t_sym = Sols.t;
+%         end
+%         
+%         tc = @timecalc;
+%     end
+
+end
+
 % solve maximum frequency ------------------------------------------------%
-    function varargout = solveFm
+function sf = makeSolvefm
+
+fm = sym('fm', 'positive');
+a = sym('a', 'positive');
+d = sym('d', 'positive');
+
+    function f = solvefm(fi, t, sn_a, sn_c, sn_d, s)
+        
+        if nargin<6, s = 1; end
+        
+        %fm0 = solve(2*sn_a/(fi+fm) + sn_c/fm + 2*sn_d/(fi+fm) == t, fm);
+        
         % solve multiple equations of linear speed ramp
-        f_m = sym('f_m', 'positive');
-        sols = solve(2*sn_a/(f_i+f_m) + sn_c/f_m + 2*sn_d/(f_i+f_m) == t_tot, f_m);
-        f_m = round( double(sols) );
+        aa = solve((fm + 0.5*a*s/fm)^2 - (fi - 0.5*a*s/fi)^2 == 2*a*sn_a*s, a);
+        dd = solve((fm + 0.5*d*s/fm)^2 - (fi - 0.5*d*s/fi)^2 == 2*d*sn_d*s, d);
         
-        isFeasible = ~isempty(f_m) && (f_m >= sn_tot/t_tot) && ...
-            (f_m^2-f_i^2 <= 2*a_max*min(sn_a, sn_d));
+        %fms = nan(2, 2);
+        %fms(1,1) = solve(((fm + 0.5*aa(1)*s/fm) - (fi - 0.5*aa(1)*s/fi))/aa(1) + sn_c/fm + ((fm + 0.5*dd(1)*s/fm) - (fi - 0.5*dd(1)*s/fi))/dd(1) == t);
+        %fms(2,2) = solve(((fm + 0.5*aa(2)*s/fm) - (fi - 0.5*aa(2)*s/fi))/aa(2) + sn_c/fm + ((fm + 0.5*dd(2)*s/fm) - (fi - 0.5*dd(2)*s/fi))/dd(2) == t);
+        %fms(1,2) = solve(((fm + 0.5*aa(1)*s/fm) - (fi - 0.5*aa(1)*s/fi))/aa(1) + sn_c/fm + ((fm + 0.5*dd(2)*s/fm) - (fi - 0.5*dd(2)*s/fi))/dd(2) == t);
+        %fms(2,1) = solve(((fm + 0.5*aa(2)*s/fm) - (fi - 0.5*aa(2)*s/fi))/aa(2) + sn_c/fm + ((fm + 0.5*dd(1)*s/fm) - (fi - 0.5*dd(1)*s/fi))/dd(1) == t);
         
-        if isFeasible
-            varargout = {f_m};
-        end
+        fm22 = solve(((fm + 0.5*aa(2)*s/fm) - (fi - 0.5*aa(2)*s/fi))/aa(2) + sn_c/fm + ((fm + 0.5*dd(2)*s/fm) - (fi - 0.5*dd(2)*s/fi))/dd(2) == t);
+        
+        f = round(double(fm22));
+
     end
 
+sf = @solvefm;
 end

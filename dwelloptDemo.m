@@ -78,27 +78,33 @@ nw = Crt.num-1;
 
 % params = [w_a, w_d, w_f, a1, a2]
 dwopt = @(params) dwellopt(params(1:nw), params(nw+(1:nw)), params(2*nw+(1:nw)), params(end-1), params(end), ...
-     Crt, strokeTime, stepAngleDeg, leafWidth, a_max, timeStep);
- 
-params = [1/3 * ones(1,3*nw), 3*ones(1,2)];
- 
-lb = [zeros(1,3*nw) ones(1,2)];   % Lower bound
-ub = [ones(1,3*nw) 9*ones(1,2)];  % Upper bound
+     Crt, strokeTime, stepAngleDeg, leafWidth, timeStep);
+
+
+params = [1/3*ones(1,2*nw), 0.4*ones(1,nw), 3*ones(size(Crt.types)), 3];
+
+% [a, b, c] = dwopt(params);
+lb = [zeros(1,3*nw), ones(size(Crt.types)), 1];   % Lower bound
+ub = [ones(1,3*nw), 9*ones(size(Crt.types)), 9];  % Upper bound
 
 % Open pool of MATLAB sessions for parallelcomputation
 isOpen = matlabpool('size') > 0;
 if ~isOpen
     nProcessers = getenv('NUMBER_OF_PROCESSORS');
-    matlabpool('local', nProcessers-1);
+    matlabpool('local', 3);
 end
 
-psopts = psoptimset('Cache', 'on', 'Vectorized','off', ...
-    'UseParallel', 'always', 'CompletePoll', 'on', ...
-    'PlotFcns', {@psplotbestf,@psplotmeshsize,@psplotfuncount,@psplotbestx},...
-    'PlotInterval', 10);
+psopts = psoptimset('Cache', 'off', 'Vectorized','off', ...
+    'UseParallel', 'always', 'CompletePoll', 'on', 'TolFun', 0.05, ...
+    'TolMesh', 0.05, 'TolX', 0.05, 'PollMethod', 'GPSPositiveBasisNp1', ...
+    'MaxMeshSize', 0.5, 'InitialMeshSize', 0.1, 'MeshAccelerator', 'on', ...
+    'PlotFcns', {@psplotbestf,@psplotmeshsize,@psplotfuncount,@psplotbestx}, ...
+    'PlotInterval', 1);
 [params1, rmse1] = patternsearch(dwopt, params, [], [], [], [], lb, ub, psopts);
 
-matlabpool close
+% if isOpen
+%     matlabpool close
+% end
 
 % 
 % T_STEP = 0.001;
