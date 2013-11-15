@@ -41,8 +41,8 @@ narrows = abs(crtSteps(2:end) - crtSteps(1:end-1)) < 4;
 broadenMask = [narrows(1) narrows(1:end)] | [narrows(1:end) narrows(end)];
 
 % broaden steps difference
-amp1 = a1 * crtTypes; % @param -------------------------------------------@
-amp2 = a2 * broadenMask .* crtTypes; % @param ----------------------------@
+amp1 = 10 * a1 * crtTypes; % @param -------------------------------------------@
+amp2 = 10 * a2 * broadenMask .* crtTypes; % @param ----------------------------@
 
 crtSteps = round(crtSteps + amp1 + amp2);
 
@@ -53,7 +53,7 @@ S = cell(1, nCrts-1);
 T = cell(1, nCrts-1);
 
 % handles
-% tc = makeTimecalc;
+tc = makeTimecalc;
 sf = makeSolvefm;
 
 t_diff = 0;
@@ -100,7 +100,8 @@ for j = 2:nCrts
     f_i = round(w_f(j-1)*(sn_tot/t_tot - 2) + 2);
 
     %# TODO: maximum frequency may be no solutions.
-    f_m = sf(f_i, t_tot, sn_a, sn_c, sn_d);
+    % this is not exact solution, but is almost equals to it and less than it.
+    f_m = sf(sn_a, sn_c, sn_d, f_i, t_tot);
 
     sn = [sn_a, sn_c, sn_d];
     pf = round([f_i, f_m]);
@@ -176,51 +177,59 @@ end
 %         
 %         a = sym('a', 'positive');
 %         n = sym('n', 'positive');
-%         t = sym('t', 'real');
+%         t = sym('t', 'positive');
 %         
-%         function t_sym = timecalc(f_i, f_m)
+%         function tSol = timecalc(f_i, f_m)
 %             
 %             % solve multiple equations of linear speed ramp
-%             Sols = solve((f_m + 0.5*a*s_u/f_m)^2 - (f_i - 0.5*a*s_u/f_i)^2 == 2*a*n*s_u, ...
-%                 ((f_m + 0.5*a*s_u/f_m) - (f_i - 0.5*a*s_u/f_i))/a == t, ...
-%                 t, a);
+%             aSol = solve((f_m + 0.5*a*s_u/f_m)^2 - (f_i - 0.5*a*s_u/f_i)^2 == 2*a*n*s_u, a);
+%             a1 = aSol(end);
+%             tSol = solve(((f_m + 0.5*a1*s_u/f_m) - (f_i - 0.5*a1*s_u/f_i))/a1 == t, t);
 %             
-%             t_sym = Sols.t;
 %         end
 %         
 %         tc = @timecalc;
 %     end
 
+% solve maximum frequency ------------------------------------------------%
+    function sf = makeSolvefm
+        fm = sym('fm', 'positive');
+        
+        function f = solvefm(sn_a, sn_c, sn_d, fi, t)
+            f = round(double(solve(2*(sn_a+sn_d)/(fi+fm) + sn_c/fm == t, fm)));
+        end
+        
+        sf = @solvefm;
+    end
+        
 end
 
 % solve maximum frequency ------------------------------------------------%
-function sf = makeSolvefm
-
-fm = sym('fm', 'positive');
-a = sym('a', 'positive');
-d = sym('d', 'positive');
-
-    function f = solvefm(fi, t, sn_a, sn_c, sn_d, s)
-        
-        if nargin<6, s = 1; end
-        
-        %fm0 = solve(2*sn_a/(fi+fm) + sn_c/fm + 2*sn_d/(fi+fm) == t, fm);
-        
-        % solve multiple equations of linear speed ramp
-        aa = solve((fm + 0.5*a*s/fm)^2 - (fi - 0.5*a*s/fi)^2 == 2*a*sn_a*s, a);
-        dd = solve((fm + 0.5*d*s/fm)^2 - (fi - 0.5*d*s/fi)^2 == 2*d*sn_d*s, d);
-        
-        %fms = nan(2, 2);
-        %fms(1,1) = solve(((fm + 0.5*aa(1)*s/fm) - (fi - 0.5*aa(1)*s/fi))/aa(1) + sn_c/fm + ((fm + 0.5*dd(1)*s/fm) - (fi - 0.5*dd(1)*s/fi))/dd(1) == t);
-        %fms(2,2) = solve(((fm + 0.5*aa(2)*s/fm) - (fi - 0.5*aa(2)*s/fi))/aa(2) + sn_c/fm + ((fm + 0.5*dd(2)*s/fm) - (fi - 0.5*dd(2)*s/fi))/dd(2) == t);
-        %fms(1,2) = solve(((fm + 0.5*aa(1)*s/fm) - (fi - 0.5*aa(1)*s/fi))/aa(1) + sn_c/fm + ((fm + 0.5*dd(2)*s/fm) - (fi - 0.5*dd(2)*s/fi))/dd(2) == t);
-        %fms(2,1) = solve(((fm + 0.5*aa(2)*s/fm) - (fi - 0.5*aa(2)*s/fi))/aa(2) + sn_c/fm + ((fm + 0.5*dd(1)*s/fm) - (fi - 0.5*dd(1)*s/fi))/dd(1) == t);
-        
-        fm22 = solve(((fm + 0.5*aa(2)*s/fm) - (fi - 0.5*aa(2)*s/fi))/aa(2) + sn_c/fm + ((fm + 0.5*dd(2)*s/fm) - (fi - 0.5*dd(2)*s/fi))/dd(2) == t);
-        
-        f = round(double(fm22));
-
-    end
-
-sf = @solvefm;
-end
+% function sf = makeSolvefm
+% 
+% fm = sym('fm', 'positive');
+% a = sym('a', 'positive');
+% n = sym('n', 'positive');
+% 
+%     function f = solvefm(sn_a, sn_c, sn_d, fi, t, s)
+%         
+%         if nargin<6, s = 1; end
+%         
+%         %fm0 = solve(2*sn_a/(fi+fm) + sn_c/fm + 2*sn_d/(fi+fm) == t, fm);
+%         
+%         % select the second acceleration as defaut value
+%         aa = solve((fm + 0.5*a*s/fm)^2 - (fi - 0.5*a*s/fi)^2 == 2*a*n*s, a);
+%         
+%         % get acceleration and deceleration by symbolic substitution
+%         aa2 = aa(2);
+%         acc = subs(aa2, n, sn_a);
+%         dec = subs(aa2, n, sn_d);
+%         
+%         fm1 = solve(((fm + 0.5*acc*s/fm) - (fi - 0.5*acc*s/fi))/acc + sn_c/fm + ((fm + 0.5*dec*s/fm) - (fi - 0.5*dec*s/fi))/dec == t);
+%         
+%         f = round(double(fm1));
+% 
+%     end
+% 
+% sf = @solvefm;
+% end
