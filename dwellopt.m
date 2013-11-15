@@ -1,4 +1,4 @@
-function [r, f_list, dt_list] = dwellopt(w_a, w_d, w_f, a1, a2, Crt, strokeTime, stepAngleDeg, leafWidth, timeStep)
+function [r, F, D, dwellTime] = dwellopt(w_a, w_d, w_f, a1, a2, Crt, strokeTime, stepAngleDeg, leafWidth, timeStep)
 %DWELLOPT motion profile optimization to obtain the minimum RMSE of dwell time
 % varargin:
 %   @params to be optimized
@@ -52,8 +52,10 @@ crtSteps = round(crtSteps + amp1 + amp2);
 S = cell(1, nCrts-1);
 T = cell(1, nCrts-1);
 
-% handles
-tc = makeTimecalc;
+F = cell(1, nCrts-1);
+D = cell(1, nCrts-1);
+
+% handles to solve maximum frequency
 sf = makeSolvefm;
 
 t_diff = 0;
@@ -108,6 +110,9 @@ for j = 2:nCrts
     method = 'round';
     [f_list, dt_list] = time_per_step(sn, pf, s_u, method);
     
+    F{j-1} = f_list;
+    D{j-1} = dt_list;
+    
     % time difference
     t_diff = t_tot - sum(dt_list(:));
     
@@ -153,45 +158,20 @@ projWidths = step2width(stepsamp, stepAngleDeg, leafWidth);
 
 dwellTime = timecount(projWidths, strokeTime, scaleDivs);
 
-filt = ~[1 isnan(ogee)' 1];
-scaleDivs = scaleDivs(filt);
-dwellTime = dwellTime(filt);
-
-isNum = ~isnan(ogee);
-ogee = ogee(isNum)';
 
 % #3 root-mean-square deviation of dwell time
+
+% filter NaNs
+isNum = ~isnan(ogee);
+ogee = ogee(isNum)';
+dwellTime = dwellTime([false isNum' false]);
+
 r = rmse(ogee, dwellTime);
 
-if nargout > 1
 
-    figure, hold on;
-    plot(scaleDivs, dwellTime, 'r-');
-    plot(scaleDivs, ogee, 'k-')
-end
-
-
-
-% time calculations ------------------------------------------------------%
-%     function tc = makeTimecalc
-%         
-%         a = sym('a', 'positive');
-%         n = sym('n', 'positive');
-%         t = sym('t', 'positive');
-%         
-%         function tSol = timecalc(f_i, f_m)
-%             
-%             % solve multiple equations of linear speed ramp
-%             aSol = solve((f_m + 0.5*a*s_u/f_m)^2 - (f_i - 0.5*a*s_u/f_i)^2 == 2*a*n*s_u, a);
-%             a1 = aSol(end);
-%             tSol = solve(((f_m + 0.5*a1*s_u/f_m) - (f_i - 0.5*a1*s_u/f_i))/a1 == t, t);
-%             
-%         end
-%         
-%         tc = @timecalc;
-%     end
 
 % solve maximum frequency ------------------------------------------------%
+%# approximate solution
     function sf = makeSolvefm
         fm = sym('fm', 'positive');
         
@@ -205,6 +185,7 @@ end
 end
 
 % solve maximum frequency ------------------------------------------------%
+%# exact solution
 % function sf = makeSolvefm
 % 
 % fm = sym('fm', 'positive');
