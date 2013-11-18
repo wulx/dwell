@@ -222,3 +222,5 @@ pip-log.txt
 *.asv
 ~tmp*
 lsramp/
+savemultfigs/
+myaa.m
