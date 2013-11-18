@@ -104,6 +104,11 @@ for j = 2:nCrts
     %# TODO: maximum frequency may be no solutions.
     % this is not exact solution, but is almost equals to it and less than it.
     f_m = sf(sn_a, sn_c, sn_d, f_i, t_tot);
+    
+    %# fix bug, when f_m == f_i,  time_per_step throw error
+    if f_m <= f_i
+        f_m = f_i + 1; % f_m shoud be greater than f_i
+    end
 
     sn = [sn_a, sn_c, sn_d];
     pf = round([f_i, f_m]);

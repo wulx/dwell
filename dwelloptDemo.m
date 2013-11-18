@@ -9,6 +9,14 @@ if isempty(strfind(path, 'lsramp'))
     end
 end
 
+% Open pool of MATLAB sessions for parallelcomputation
+isOpen = matlabpool('size') > 0;
+if ~isOpen
+    %nProcessers = getenv('NUMBER_OF_PROCESSORS');
+    matlabpool('local', 3);
+end
+
+
 % load dwell time data
 Dwell = load('dwell_time.mat');
 upDwellTime = Dwell.upDwellTime;
@@ -17,7 +25,7 @@ strokeTime = Dwell.strokeTime;
 maxDwellTime = Dwell.maxDwellTime;
 
 dwells = [upDwellTime downDwellTime];
-nDwells = numel(dwells);
+nDwells = size(dwells, 2);
 
 Params = cell(1, nDwells);
 Rmses = cell(1, nDwells);
@@ -88,12 +96,6 @@ for j = 1:nDwells
     lb = [zeros(1,3*nw), 0.1, 0.1];   % Lower bounds
     ub = [ones(1,3*nw), 0.9, 0.9];  % Upper bounds
     
-    % Open pool of MATLAB sessions for parallelcomputation
-    isOpen = matlabpool('size') > 0;
-    if ~isOpen
-        %nProcessers = getenv('NUMBER_OF_PROCESSORS');
-        matlabpool('local', 3);
-    end
     
     psopts = psoptimset('Cache', 'on', 'Vectorized','off', 'MaxIter', 20, ...
         'UseParallel', 'always', 'CompletePoll', 'on', 'TolFun', 0.03, ...
@@ -104,9 +106,6 @@ for j = 1:nDwells
     %     'PlotInterval', 1);
     [params1, rmse1] = patternsearch(dwopt, params, [], [], [], [], lb, ub, psopts);
     
-    if isOpen
-        matlabpool close
-    end
     
     % plot results
     [r, F, D, dwellTime] = dwopt(params1);
@@ -121,4 +120,8 @@ for j = 1:nDwells
     
     Params{j} = params1;
     Rmses{j} = rmse1;
+end
+
+if isOpen
+    matlabpool close
 end
